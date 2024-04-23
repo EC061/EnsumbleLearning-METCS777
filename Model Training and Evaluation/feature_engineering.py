@@ -1,12 +1,12 @@
 from pyspark import SparkContext
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import mean, stddev, min, max, last, count, countDistinct
-from pyspark.ml.feature import StringIndexer, VectorAssembler, StandardScaler
+from pyspark.ml.feature import StringIndexer, VectorAssembler, MinMaxScaler
 from pyspark.ml import Pipeline
 import sys
 
 if len(sys.argv) != 5:
-    print("Usage: training.py <input_file_path> <output_dir> ", file=sys.stderr)
+    print("Usage: feature_engineering.py <input_file_path> <output_dir> ", file=sys.stderr)
     exit(-1)
 
 CAT_VARS = ["B_30","B_38","D_114","D_116","D_117","D_120","D_126","D_63","D_64","D_66","D_68"]
@@ -18,7 +18,7 @@ TEST_FILE = sys.argv[2]
 OUT_DIR1 = sys.argv[3]
 OUT_DIR2 = sys.argv[4]
 
-sc = SparkContext(appName="Train and Save Models")
+sc = SparkContext(appName="Feature Engineering for Models")
 spark = SparkSession(sc)
 data_train = spark.read.parquet(TRAIN_FILE, header=True, inferSchema=True)
 data_test = spark.read.parquet(TEST_FILE, header=True, inferSchema=True)
@@ -58,15 +58,16 @@ indexers = [
 ]
 continuous_features = [c for c in data_train.columns if c not in CAT_FEATURES and c != TARGET_COLUMN and not c.endswith('_indexed')]
 assembler_cont = VectorAssembler(inputCols=continuous_features, outputCol="features_raw")
-scaler = StandardScaler(inputCol="features_raw", outputCol="scaled_features", withStd=True, withMean=False)
+scaler = MinMaxScaler(inputCol="features_raw", outputCol="scaled_features", min=0.1, max=0.9)
 final_feature_columns = [col + "_indexed" for col in CAT_FEATURES] + ["scaled_features"]
 assembler_final = VectorAssembler(inputCols=final_feature_columns, outputCol="features")
 pipeline = Pipeline(stages=indexers + [assembler_cont, scaler, assembler_final])
 model = pipeline.fit(data_train)
 train_indexed = model.transform(data_train)
 test_indexed = model.transform(data_test)
-train_selected = train_indexed.select("features", TARGET_COLUMN)
-test_selected = test_indexed.select("features", TARGET_COLUMN)
+train_selected = train_indexed.select("features", TARGET_COLUMN).cache()
+test_selected = test_indexed.select("features", TARGET_COLUMN).cache()
 
 train_selected.write.parquet(OUT_DIR1, mode="overwrite")
 test_selected.write.parquet(OUT_DIR2, mode="overwrite")
+sc.stop()

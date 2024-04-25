@@ -5,13 +5,11 @@ from pyspark.ml.classification import LogisticRegression, DecisionTreeClassifier
                                       LinearSVC, MultilayerPerceptronClassifier
 from pyspark.ml.evaluation import BinaryClassificationEvaluator, MulticlassClassificationEvaluator
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
-from pyspark.ml import Pipeline
-from pyspark.ml.pipeline import PipelineModel
-from pyspark.sql import Row
+from pyspark.ml import Pipeline, PipelineModel
 import os
 
 if len(sys.argv) != 5:
-    print("Usage: train_evaluate.py <input_file_path> <output_dir> ", file=sys.stderr)
+    print("Usage: train_evaluate.py <input_file_path> <output_dir> ")
     exit(-1)
 
 TRAIN_FILE = sys.argv[1]
@@ -31,8 +29,7 @@ models = {
     "LinearSVC": LinearSVC(featuresCol='features', labelCol='target'),
     "LogisticRegression": LogisticRegression(featuresCol='features', labelCol='target'),
     "DecisionTreeClassifier": DecisionTreeClassifier(featuresCol='features', labelCol='target'),
-    "RandomForestClassifier": RandomForestClassifier(featuresCol='features', labelCol='target'),
-    "MultilayerPerceptronClassifier": MultilayerPerceptronClassifier(featuresCol='features', labelCol='target', layers=layers)
+    "RandomForestClassifier": RandomForestClassifier(featuresCol='features', labelCol='target')
 }
 
 paramGrids = {
@@ -61,32 +58,33 @@ paramGrids = {
         .addGrid(RandomForestClassifier.numTrees, [10, 50, 100]) \
         .addGrid(RandomForestClassifier.maxDepth, [2, 5, 10]) \
         .addGrid(RandomForestClassifier.maxBins, [10, 20, 40]) \
-        .build(),
-        
-    "MultilayerPerceptronClassifier": ParamGridBuilder() \
-        .addGrid(MultilayerPerceptronClassifier.maxIter, [100, 200, 300]) \
-        .addGrid(MultilayerPerceptronClassifier.blockSize, [128, 256]) \
         .build()
 }
 
 binary_evaluator = BinaryClassificationEvaluator(labelCol="target")
 multi_evaluator = MulticlassClassificationEvaluator(labelCol="target")
 
+
 results = []
 for name, model in models.items():
     model_path = os.path.join(MODEL_DIR, f"{name}_model")
-    if os.path.exists(model_path):
-        model = PipelineModel.load(model_path)
-    else:
-        pipeline = Pipeline(stages=[model])
+    try:
+            model = PipelineModel.load(model_path)
+            print(f"Loaded model: {name}")
+    except Exception as e:
+        print(f"Error loading model {name}: {e}. Training new model.")
+        pipeline = Pipeline(stages=[models[name]])
         paramGrid = paramGrids[name]
-        crossval = CrossValidator(estimator=pipeline,
-                                    estimatorParamMaps=paramGrid,
-                                    evaluator=multi_evaluator,
-                                    numFolds=3)
+        crossval = CrossValidator(
+            estimator=pipeline,
+            estimatorParamMaps=paramGrid,
+            evaluator=multi_evaluator,
+            numFolds=2, parallelism=5
+        )
         cvModel = crossval.fit(train_selected)
         model = cvModel.bestModel
         model.save(model_path)
+        print(f"Trained and saved new model for {name}")
     
     predictions = model.transform(test_selected)
     accuracy = multi_evaluator.evaluate(predictions, {multi_evaluator.metricName: "accuracy"})
@@ -100,9 +98,12 @@ for name, model in models.items():
     result_string = (f"Model: {name}, Accuracy: {accuracy}, Precision: {precision}, Recall: {recall}, "
                         f"F1 Score: {f1}, AUC: {auc}\n")
     parameters_string = f"Best Parameters: {param_str}\n"
-    results.append(Row(model=name, accuracy=accuracy, precision=precision, recall=recall, f1=f1, auc=auc))
-    results.append(Row(model=name, parameters=parameters_string))
+    results.append((name, accuracy, precision, recall, f1, auc, parameters_string))
 
-results_df = spark.createDataFrame(results)
-results_df.write.text(OUT_DIR1)       
+results_rdd = sc.parallelize(results)
+def format_result(result):
+    model, accuracy, precision, recall, f1, auc, parameters = result
+    return f"Model: {model}, Accuracy: {accuracy}, Precision: {precision}, Recall: {recall}, F1 Score: {f1}, AUC: {auc}\n{parameters}"
+results_rdd.map(format_result).foreach(print)
+results_rdd.coalesce(1).map(format_result).saveAsTextFile(OUT_DIR1)      
 sc.stop()

@@ -1,0 +1,18 @@
+Model: GBTClassifier, Accuracy: 0.8656849620705043, Precision: 0.9068998109640832, Recall: 0.9145716668652448, F1 Score: 0.8651091547517185, AUC: 0.9264007685060316
+Best Parameters: cacheNodeIds: False, checkpointInterval: 10, featureSubsetStrategy: all, featuresCol: features, impurity: variance, labelCol: target, leafCol: , lossType: logistic, maxBins: 32, maxDepth: 5, maxIter: 20, maxMemoryInMB: 256, minInfoGain: 0.0, minInstancesPerNode: 1, minWeightFractionPerNode: 0.0, predictionCol: prediction, probabilityCol: probability, rawPredictionCol: rawPrediction, seed: 246163957840469531, stepSize: 0.1, subsamplingRate: 1.0, validationTol: 0.01
+
+Model: LinearSVC, Accuracy: 0.8735385988398037, Precision: 0.907571862584716, Recall: 0.9254140355057786, F1 Score: 0.8722429147167934, AUC: 0.9335106653431136
+Best Parameters: aggregationDepth: 2, featuresCol: features, fitIntercept: True, labelCol: target, maxBlockSizeInMB: 0.0, maxIter: 100, predictionCol: prediction, rawPredictionCol: rawPrediction, regParam: 0.0, standardization: True, threshold: 0.0, tol: 1e-06
+
+Model: LogisticRegression, Accuracy: 0.8738955823293173, Precision: 0.9057196000930017, Recall: 0.9282735613010842, F1 Score: 0.8722373876360492, AUC: 0.9331230141828886
+Best Parameters: aggregationDepth: 2, elasticNetParam: 0.0, family: auto, featuresCol: features, fitIntercept: True, labelCol: target, maxBlockSizeInMB: 0.0, maxIter: 100, predictionCol: prediction, probabilityCol: probability, rawPredictionCol: rawPrediction, regParam: 0.0, standardization: True, threshold: 0.5, tol: 1e-06
+
+Model: DecisionTreeClassifier, Accuracy: 0.852119589468987, Precision: 0.9015259895088221, Recall: 0.9009889193375432, F1 Score: 0.8521632364621854, AUC: 0.774393994758553
+Best Parameters: cacheNodeIds: False, checkpointInterval: 10, featuresCol: features, impurity: gini, labelCol: target, leafCol: , maxBins: 32, maxDepth: 5, maxMemoryInMB: 256, minInfoGain: 0.0, minInstancesPerNode: 1, minWeightFractionPerNode: 0.0, predictionCol: prediction, probabilityCol: probability, rawPredictionCol: rawPrediction, seed: 7513936882600806730
+
+Model: RandomForestClassifier, Accuracy: 0.8581883087907184, Precision: 0.8911243964129685, Recall: 0.9235076849755749, F1 Score: 0.8553878146462047, AUC: 0.9209817451005284
+Best Parameters: bootstrap: True, cacheNodeIds: False, checkpointInterval: 10, featureSubsetStrategy: auto, featuresCol: features, impurity: gini, labelCol: target, leafCol: , maxBins: 32, maxDepth: 5, maxMemoryInMB: 256, minInfoGain: 0.0, minInstancesPerNode: 1, minWeightFractionPerNode: 0.0, numTrees: 20, predictionCol: prediction, probabilityCol: probability, rawPredictionCol: rawPrediction, seed: 6849092047511179320, subsamplingRate: 1.0
+
+Model: MultilayerPerceptronClassifier, Accuracy: 0.8695225345827755, Precision: 0.91075026668247, Recall: 0.9155248421303467, F1 Score: 0.8691786660780918, AUC: 0.9316267501926601
+Best Parameters: blockSize: 128, featuresCol: features, labelCol: target, maxIter: 100, predictionCol: prediction, probabilityCol: probability, rawPredictionCol: rawPrediction, seed: 2440750562750076652, solver: l-bfgs, stepSize: 0.03, tol: 1e-06, layers: [918, 460, 230, 2]
+
